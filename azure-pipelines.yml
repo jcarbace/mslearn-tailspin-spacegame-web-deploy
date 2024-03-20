@@ -66,7 +66,7 @@ stages:
         command: 'publish'
         projects: '**/*.csproj'
         publishWebProjects: false
-        arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+        arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
         zipAfterPublish: true
 
   - job: 'CIafterMerge'
@@ -154,7 +154,7 @@ stages:
       demands:
       - npm
     steps:
-    - publish: '$(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+    - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
 - stage: 'Deploy'
