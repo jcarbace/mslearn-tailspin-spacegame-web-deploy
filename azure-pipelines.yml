@@ -78,7 +78,7 @@ stages:
       and(
         eq(variables['Build.Reason'], 'PullRequestMerge'),
         eq(variables['System.PullRequest.SourceBranch'], 'refs/heads/branch_with_build_validation'),
-        eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/main')
+        eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/release-pipeline')
       )
     pool:
       vmImage: 'ubuntu-20.04'
