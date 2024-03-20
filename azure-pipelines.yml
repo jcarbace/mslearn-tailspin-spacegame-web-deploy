@@ -70,7 +70,7 @@ stages:
         eq(variables['Build.Reason'], 'PullRequest'),
         eq(variables['System.PullRequest.SourceBranch'], 'refs/heads/branch_with_build_validation'),
         ne(variables['System.PullRequest.IsDraft'], 'true'),
-        in(variables['System.PullRequest.TargetBranch'], 'refs/heads/main')
+        in(variables['System.PullRequest.TargetBranch'], 'refs/heads/release-pipeline')
       )
   - job: 'CI'
     displayName: 'CI after merge job'
