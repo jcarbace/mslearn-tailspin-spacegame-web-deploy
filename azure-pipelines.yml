@@ -157,7 +157,7 @@ stages:
 
 - stage: 'Deploy'
   displayName: 'Deploy the web application'
-  dependsOn: Build
+  dependsOn: PublishArtifact
   condition: ne(variables['Build.Reason'], 'PullRequest')
   jobs:
   - deployment: Deploy
