@@ -141,8 +141,11 @@ stages:
 
 - stage: 'PublishArtifact'
   displayName: 'Publish the artifact'
-  dependsOn: Build
   condition: ne(variables['Build.Reason'], 'PullRequest')
+  dependsOn: 
+    - ComplianceSecScan
+    - CodeQualityChecks
+    - FunctionalQualityChecks
   jobs: 
   - job: 'Publish'
     displayName: 'Publish'
@@ -151,7 +154,7 @@ stages:
       demands:
       - npm
     steps:
-    - publish: '$(Build.ArtifactStagingDirectory)'
+    - publish: '$(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
       artifact: drop
 
 - stage: 'Deploy'
