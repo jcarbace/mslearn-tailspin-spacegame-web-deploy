@@ -89,6 +89,7 @@ stages:
       
 - stage: 'ComplianceSecScan'
   displayName: 'Compliance Security Scan'
+  dependsOn: Build
   jobs: 
   - job: 'ComplianceSecurityScan'
     displayName: 'Compliance Security Scan job'
@@ -102,6 +103,7 @@ stages:
 
 - stage: 'CodeQualityChecks'
   displayName: 'Code Quality Checks'
+  dependsOn: Build
   jobs: 
   - job: 'CodeQualityChecks'
     displayName: 'Code Quality Checks job'
@@ -125,6 +127,7 @@ stages:
 
 - stage: 'FunctionalQualityChecks'
   displayName: 'Functional Quality Checks'
+  dependsOn: Build
   jobs: 
   - job: 'FunctionalQualityChecks'
     displayName: 'Functional Quality Checks job'
