@@ -141,11 +141,7 @@ stages:
 
 - stage: 'PublishArtifact'
   displayName: 'Publish the artifact'
-  dependsOn: 
-    - ComplianceSecScan
-    - CodeQualityChecks
-    - FunctionalQualityChecks
-
+  dependsOn: Build
   condition: ne(variables['Build.Reason'], 'PullRequest')
   jobs: 
   - job: 'Publish'
