@@ -7,6 +7,13 @@ variables:
 stages:
 - stage: 'Build'
   displayName: 'Build the web application'
+  condition: |
+      and(
+        eq(variables['Build.Reason'], 'PullRequest'),
+        eq(variables['System.PullRequest.SourceBranch'], 'refs/heads/branch_with_build_validation'),
+        ne(variables['System.PullRequest.IsDraft'], 'true'),
+        in(variables['System.PullRequest.TargetBranch'], 'refs/heads/main')
+      )
   jobs: 
   - job: 'Build'
     displayName: 'Build job'
@@ -62,12 +69,98 @@ stages:
         arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
         zipAfterPublish: true
 
+  - job: 'CIafterMerge'
+    displayName: 'CI after merge job'
+    condition: |
+      and(
+        eq(variables['Build.Reason'], 'PullRequestMerge'),
+        eq(variables['System.PullRequest.SourceBranch'], 'refs/heads/branch_with_build_validation'),
+        eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/main')
+      )
+    pool:
+      vmImage: 'ubuntu-20.04'
+      demands:
+      - npm
+      - DotNetCore
+
+    steps:
+    - script: echo "This is the CI build after merge"
+      displayName: 'Execute CI build after merge'
+      
+- stage: 'ComplianceSecScan'
+  displayName: 'Compliance Security Scan'
+  dependsOn: Build
+  jobs: 
+  - job: 'ComplianceSecurityScan'
+    displayName: 'Compliance Security Scan job'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        # Ejecutar escaneo de seguridad
+        npm run security-scan
+      displayName: 'Run security scan'
+
+- stage: 'CodeQualityChecks'
+  displayName: 'Code Quality Checks'
+  dependsOn: Build
+  jobs: 
+  - job: 'CodeQualityChecks'
+    displayName: 'Code Quality Checks job'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        # Ejecutar linting para el código
+        npm run lint
+      displayName: 'Run linting'
+
+    - script: |
+        # Ejecutar pruebas unitarias
+        npm run test
+      displayName: 'Run unit tests'
+
+    - script: |
+        # Ejecutar análisis estático de código
+        npm run static-analysis
+      displayName: 'Run static code analysis'
+
+- stage: 'FunctionalQualityChecks'
+  displayName: 'Functional Quality Checks'
+  dependsOn: Build
+  jobs: 
+  - job: 'FunctionalQualityChecks'
+    displayName: 'Functional Quality Checks job'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        # Agrega las tareas necesarias para las comprobaciones de calidad funcional
+        npm run functional-tests
+      displayName: 'Run functional tests'
+
+- stage: 'PublishArtifact'
+  displayName: 'Publish the artifact'
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+  dependsOn: 
+    - ComplianceSecScan
+    - CodeQualityChecks
+    - FunctionalQualityChecks
+  jobs: 
+  - job: 'Publish'
+    displayName: 'Publish'
+    pool:
+      vmImage: 'ubuntu-20.04'
+      demands:
+      - npm
+    steps:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Dev'
-  displayName: 'Deploy to the dev environment'
-  dependsOn: Build
+- stage: 'Deploy'
+  displayName: 'Deploy the web application'
+  dependsOn: PublishArtifact
+  condition: ne(variables['Build.Reason'], 'PullRequest')
   jobs:
   - deployment: Deploy
     pool:
@@ -85,51 +178,5 @@ stages:
             displayName: 'Azure App Service Deploy: website'
             inputs:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appName: '$(WebAppNameDev)'
-              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-
-- stage: 'Test'
-  displayName: 'Deploy to the test environment'
-  dependsOn: Dev
-  jobs:
-  - deployment: Deploy
-    pool:
-      vmImage: 'ubuntu-20.04'
-    environment: test
-    variables:
-    - group: 'Release'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: drop
-          - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website'
-            inputs:
-              azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appName: '$(WebAppNameTest)'
-              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-
-- stage: 'Staging'
-  displayName: 'Deploy to the staging environment'
-  dependsOn: Test
-  jobs:
-  - deployment: Deploy
-    pool:
-      vmImage: 'ubuntu-20.04'
-    environment: staging
-    variables:
-    - group: 'Release'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: drop
-          - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website'
-            inputs:
-              azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appName: '$(WebAppNameStaging)'
+              appName: '$(WebAppName)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
